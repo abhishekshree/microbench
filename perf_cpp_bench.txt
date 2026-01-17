@@ -1,0 +1,16 @@
+# started on Sun Jan 18 03:10:48 2026
+
+
+ Performance counter stats for './cpp_bench':
+
+          81209480      instructions:u            #    3.22  insn per cycle         
+          25190660      cycles:u                                                    
+             15584      cache-misses:u                                              
+            193619      L1-dcache-load-misses:u                                     
+
+       0.012922783 seconds time elapsed
+
+       0.011590000 seconds user
+       0.000000000 seconds sys
+
+

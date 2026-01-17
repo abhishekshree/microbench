@@ -1,0 +1,16 @@
+# started on Sun Jan 18 03:10:48 2026
+
+
+ Performance counter stats for './rust_bench':
+
+          31428142      instructions:u            #    1.87  insn per cycle         
+          16770488      cycles:u                                                    
+             96723      cache-misses:u                                              
+            220430      L1-dcache-load-misses:u                                     
+
+       0.008841195 seconds time elapsed
+
+       0.002801000 seconds user
+       0.002801000 seconds sys
+
+
