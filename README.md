@@ -24,14 +24,15 @@ The string lives on the stack. Passing it relies on a simple pointer or referenc
 
 ```mermaid
 graph TD
-    subgraph STACK [Stack Memory]
-        func[Function Call frame]
-        str[String Data: 'Hello']
-        
-        func -->|Direct Access| str
+    subgraph STACK["Stack Memory"]
+        func["Function Call Frame"]
+        str["String Data ('Hello')"]
+        func -->|Direct reference| str
     end
-    
-    style STACK fill:#e1f5fe,stroke:#01579b
+
+    style STACK fill:#0d47a1,color:#ffffff,stroke:#90caf9,stroke-width:2px
+    style func fill:#1565c0,color:#ffffff
+    style str fill:#1e88e5,color:#ffffff
 ```
 
 **Python (The PyObject Tax)**
@@ -39,26 +40,29 @@ The variable `s` is just a pointer. The actual data lives on the heap in a heavy
 
 ```mermaid
 graph TD
-    subgraph STACK [Stack Memory]
-        var_s[Variable 's']
+    subgraph STACK["Stack Memory"]
+        var_s["Variable 's'"]
     end
 
-    subgraph HEAP [Heap Memory]
-        pyobj[PyObject Header]
-        refcnt[ob_refcnt++]
-        type[ob_type]
-        data[String Data: 'Hello']
-        
-        pyobj --- refcnt
-        pyobj --- type
-        pyobj --- data
+    subgraph HEAP["Heap Memory"]
+        pyobj["PyObject Header"]
+        refcnt["ob_refcnt (++)"]
+        typeinfo["ob_type"]
+        data["String Data ('Hello')"]
+
+        pyobj --> refcnt
+        pyobj --> typeinfo
+        pyobj --> data
     end
-    
-    var_s -->|Pointer Indirection| pyobj
-    
-    style STACK fill:#e1f5fe,stroke:#01579b
-    style HEAP fill:#fff3e0,stroke:#e65100
-    style refcnt fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px
+
+    var_s -->|Pointer indirection| pyobj
+
+    style STACK fill:#263238,color:#ffffff,stroke:#90a4ae,stroke-width:2px
+    style HEAP fill:#4e342e,color:#ffffff,stroke:#ffab91,stroke-width:2px
+    style pyobj fill:#6d4c41,color:#ffffff
+    style typeinfo fill:#5d4037,color:#ffffff
+    style data fill:#8d6e63,color:#ffffff
+    style refcnt fill:#b71c1c,color:#ffffff,stroke:#ff5252,stroke-width:3px
 ```
 
 > **The Red Box**: That `ob_refcnt++` is the bottleneck. It forces a write to the heap on *every single assignment*, destroying L1 cache locality.
@@ -85,6 +89,87 @@ struct PyLongObject {
 };
 // Total: ~24+ bytes for a 4-byte integer value
 ```
+
+
+Python’s allocator (`pymalloc`) is optimized for **fast allocation**, not for **cache locality**. To see why this matters, it helps to look at how a single Python object maps onto CPU cache lines.
+
+A typical cache line is **64 bytes**. A typical Python object begins with a `PyObject` header:
+
+```c
+struct PyObject {
+    long ob_refcnt;        // 8 bytes
+    PyTypeObject* ob_type; // 8 bytes
+};
+```
+
+For a small object (like an integer or short string), this header and the object payload often share the same cache line.
+
+```mermaid
+graph LR
+    line["64-byte Cache Line"]
+    ref["ob_refcnt"]
+    type["ob_type"]
+    data["object data"]
+
+    line --> ref
+    line --> type
+    line --> data
+
+    style line fill:#263238,color:#ffffff,stroke:#90a4ae,stroke-width:2px
+    style ref fill:#b71c1c,color:#ffffff,stroke:#ff5252,stroke-width:3px
+    style type fill:#455a64,color:#ffffff
+    style data fill:#546e7a,color:#ffffff
+```
+
+Every time Python executes:
+
+```python
+t = s
+```
+
+it must increment `s->ob_refcnt`. That single write **dirties the entire cache line**, even though the program is about to *read* the object’s data. The cost is not the increment—it is the **cache invalidation**.
+
+---
+
+## How Arenas Hurt Spatial Locality
+
+`pymalloc` allocates memory in **arenas (256 KB)** which is not so [uncommon indeed](https://protobuf.dev/reference/cpp/arenas/), subdivided into **pools (4 KB)**, each pool serving exactly one object size class.
+
+This means objects that are *logically related* are often **physically far apart** in memory.
+
+```mermaid
+graph TD
+    arena["Arena (256 KB)"]
+
+    poolA["Pool: 32B blocks"]
+    poolB["Pool: 48B blocks"]
+    poolC["Pool: 64B blocks"]
+
+    a1["int"]
+    a2["int"]
+    b1["str"]
+    c1["tuple"]
+
+    arena --> poolA --> a1
+    arena --> poolA --> a2
+    arena --> poolB --> b1
+    arena --> poolC --> c1
+
+    style arena fill:#1b5e20,color:#ffffff,stroke:#81c784,stroke-width:2px
+    style poolA fill:#2e7d32,color:#ffffff
+    style poolB fill:#33691e,color:#ffffff
+    style poolC fill:#558b2f,color:#ffffff
+```
+
+Objects created next to each other in source code may:
+
+* Live in **different pools**
+* Be separated by **kilobytes or megabytes**
+* Share no cache lines at all
+
+Iteration over Python objects therefore becomes **pointer chasing across arenas**, defeating hardware prefetching.
+
+---
 
 ## Cache Efficiency & PyObject Overhead
 The Python slowdown comes from the `PyObject` structure:
