@@ -1,32 +1,27 @@
-# Assignment and Passing Benchmark
+# Microbench: L1 Cache & Indirection Overhead
 
-This project benchmarks the cost of passing a small string to a function in C++, Rust, and Python.
+I designed this project to objectively measure the hardware-level cost of Python's object model (`PyObject`) compared to C++ and Rust.
 
-## Structure
-- `cpp/bench.cpp`: C++ implementation (g++ -O3)
-- `rust/bench.rs`: Rust implementation (rustc -O)
-- `python/bench.py`: Python implementation
-- `run_all.py`: Runner script that compiles and executes all benchmarks.
+## Objective
+My goal was to isolate the performance impact of:
+1.  **Pointer Indirection**: Python variables are pointers to variables on the heap, whereas C++/Rust use direct stack allocation.
+2.  **Reference Counting**: Every variable assignment in Python involves writing to the heap (`ob_refcnt`), causing L1 cache pollution.
+3.  **Memory Layout**: The lack of contiguous memory locality in standard Python.
 
-## Prerequisites
-- g++
-- rustc (ensure `~/.cargo/bin` is in PATH or source cargo env)
-- python3
+## Benchmarks
+I implemented the same logic—passing a small string to a function 100 million times—across three languages.
 
-## usage
-Run the full benchmark suite:
-```bash
-python3 run_all.py
-```
+-   `cpp/`: C++ implementation (`g++ -O3`)
+-   `rust/`: Rust implementation (`rustc -O`)
+-   `python/`: Python implementation (CPython & PyPy)
 
-## Expected Results
-You should see C++ and Rust performance being 150x+ faster than Python.
+## Results Summary
+My experiments confirm that C++ and Rust are **150x+ faster** than standard Python for this workload.
 
-### Assignment & Passing Cost (O(1))
-The size of the string (5 bytes vs 12MB) **does not affect** the passing cost.
-- **C++/Rust**: Pass a pointer (8 bytes). 0.002s total.
-- **Python**: Pass a reference (pointer to PyObject). 0.3s total.
-- **Result**: Constant time regardless of payload size.
+### Key Insights
+1.  **Constant Overhead**: The cost of passing a variable in Python is constant (0.3s) regardless of payload size (5 bytes vs 12MB), dominated by pointer dereferencing.
+2.  **Heap Writes**: C++/Rust pass `const string&` without writing to the heap. Python must write to the `PyObject` header (refcount) on *every* pass, dirtying the cache.
+
 
 ## Cache Efficiency & PyObject Overhead
 The Python slowdown comes from the `PyObject` structure:
@@ -38,12 +33,16 @@ The Python slowdown comes from the `PyObject` structure:
     -   **C++/Rust**: Passing `const string&` reads the pointer from the stack. It does **not** write to the heap string object.
 3.  **No SSO**: C++ uses Small String Optimization (SSO) to store small strings directly on the stack. Python always allocates a PyObject header + data on the heap.
 
-### Measuring Cache Efficiency
-To measure L1/L2 cache misses, use the `perf` tool (Linux):
-```bash
-perf stat -e instructions,cycles,cache-misses,L1-dcache-load-misses ./cpp_bench
-perf stat -e instructions,cycles,cache-misses,L1-dcache-load-misses python3 python/bench.py
-```
-*Note: `perf` requires system privileges not available in all environments.*
+## Usage
 
-**For a comprehensive performance analysis with detailed cache metrics, see [PERFORMANCE_ANALYSIS.md](PERFORMANCE_ANALYSIS.md)**
+To run the full cross-language comparison:
+```bash
+make bench_languages
+```
+
+To run the detailed Python optimization analysis (including Cython, PyPy, etc.):
+```bash
+make bench_python
+```
+
+For a deep dive into the Python-specific optimizations and finding the "PyObject Ceiling", see [python_optimized/README.md](python_optimized/README.md).

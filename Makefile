@@ -12,9 +12,9 @@ RUST_BIN = rust/bench
 RUST_ALLOC_BIN = rust/bench_alloc
 CYTHON_BIN = python_optimized/bench_06_cython
 
-.PHONY: all clean bench profile analyze
+.PHONY: all clean bench_languages bench_python profile analyze
 
-all: $(CPP_BIN) $(CPP_ALLOC_BIN) $(RUST_BIN) $(RUST_ALLOC_BIN) $(CYTHON_BIN)
+all: $(CPP_BIN) $(CPP_ALLOC_BIN) $(RUST_BIN) $(RUST_ALLOC_BIN)
 
 $(CPP_BIN): cpp/bench.cpp
 	$(CC) $(CFLAGS) -o $@ $<
@@ -28,19 +28,24 @@ $(RUST_BIN): rust/bench.rs
 $(RUST_ALLOC_BIN): rust/bench_alloc.rs
 	$(RUSTC) $(RUSTFLAGS) -o $@ $<
 
-$(CYTHON_BIN): python_optimized/bench_06_cython.pyx
-	$(CYTHON) --embed -o python_optimized/bench_06_cython.c $<
-	$(CC) $(CFLAGS) -I/usr/include/python3.10 -o $@ python_optimized/bench_06_cython.c -lpython3.10
-
-bench: all
-	@echo "=== Running Baseline Benchmarks ==="
+# Run language comparison (C++ vs Rust vs Python Baseline)
+bench_languages: all
+	@echo "=== Running Cross-Language Benchmarks ==="
+	@echo "--- Python Baseline ---"
 	@$(PY) python/bench.py
+	@echo "--- C++ ---"
 	@./$(CPP_BIN)
+	@echo "--- Rust ---"
 	@./$(RUST_BIN)
 	@echo "\n=== Running Allocation Benchmarks ==="
 	@$(PY) python/bench_alloc.py
 	@./$(CPP_ALLOC_BIN)
 	@./$(RUST_ALLOC_BIN)
+
+# Run Python Optimization Suite
+bench_python:
+	@echo "=== Running Python Optimization Benchmarks ==="
+	@$(PY) python_optimized/benchmark_python.py
 
 profile: all
 	@echo "=== Generating Cache Statistics ==="
@@ -48,6 +53,7 @@ profile: all
 	valgrind --tool=cachegrind --cachegrind-out-file=/tmp/cg_py.out $(PY) python/bench.py
 
 clean:
-	rm -f $(CPP_BIN) $(CPP_ALLOC_BIN) $(RUST_BIN) $(RUST_ALLOC_BIN) $(CYTHON_BIN)
-	rm -f python_optimized/bench_06_cython.c
-	rm -f cachegrind.out.*
+	rm -f $(CPP_BIN) $(CPP_ALLOC_BIN) $(RUST_BIN) $(RUST_ALLOC_BIN)
+	rm -f python_optimized/bench_06_cython.c python_optimized/bench_06_cython
+	rm -f cachegrind.out.* /tmp/cg_*.out
+	rm -f python_optimized/hf_results.json
