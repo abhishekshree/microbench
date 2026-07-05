@@ -1,0 +1,24 @@
+==10756== Cachegrind, a cache and branch-prediction profiler
+==10756== Copyright (C) 2002-2017, and GNU GPL'd, by Nicholas Nethercote et al.
+==10756== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==10756== Command: python3 python/bench.py
+==10756== 
+--10756-- warning: L3 cache found, using its data for the LL simulation.
+String length: 12000000
+Time: 19.307872 s
+==10756== 
+==10756== I   refs:      9,114,756,881
+==10756== I1  misses:          429,300
+==10756== LLi misses:           12,594
+==10756== I1  miss rate:          0.00%
+==10756== LLi miss rate:          0.00%
+==10756== 
+==10756== D   refs:      3,972,446,821  (2,704,967,839 rd   + 1,267,478,982 wr)
+==10756== D1  misses:        1,205,952  (      927,969 rd   +       277,983 wr)
+==10756== LLd misses:          247,534  (       14,961 rd   +       232,573 wr)
+==10756== D1  miss rate:           0.0% (          0.0%     +           0.0%  )
+==10756== LLd miss rate:           0.0% (          0.0%     +           0.0%  )
+==10756== 
+==10756== LL refs:           1,635,252  (    1,357,269 rd   +       277,983 wr)
+==10756== LL misses:           260,128  (       27,555 rd   +       232,573 wr)
+==10756== LL miss rate:            0.0% (          0.0%     +           0.0%  )

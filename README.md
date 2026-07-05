@@ -194,3 +194,14 @@ make bench_python
 ```
 
 For a deep dive into the Python-specific optimizations and finding the "PyObject Ceiling", see [python_optimized/README.md](python_optimized/README.md).
+
+## Documentation site
+
+```bash
+pip install -r requirements-docs.txt
+make docs-serve     # refreshes benchmarks.json, then mkdocs serve
+```
+
+After new benchmark runs: `make profile && make results-json`
+
+https://abhishekshree.github.io/microbench/ (deploys on push to `main`)

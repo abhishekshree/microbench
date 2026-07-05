@@ -1,2 +1,4 @@
 **/bench
 **/bench_alloc
+site/
+results/cachegrind/*.out

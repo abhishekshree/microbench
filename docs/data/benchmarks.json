@@ -1,0 +1,254 @@
+{
+  "environment": {
+    "os": "Linux WSL2",
+    "cpu": "AMD Ryzen 7 9700X",
+    "python": "CPython 3.10.12",
+    "compiler_cpp": "g++ 11.4 -O3",
+    "compiler_rust": "rustc 1.93 -C opt-level=3",
+    "tools": [
+      "hyperfine",
+      "valgrind cachegrind",
+      "perf stat"
+    ]
+  },
+  "cross_language": {
+    "reference_passing": {
+      "description": "12 MB string, t = f(s), 10M iterations",
+      "overhead_split_pct": {
+        "refcount": 45,
+        "indirection": 35,
+        "interpreter": 20
+      },
+      "timing": [
+        {
+          "lang": "C++",
+          "mean_ms": 6.7,
+          "std_ms": 0.8,
+          "min_ms": 5.8,
+          "max_ms": 10.6,
+          "relative": 1.49
+        },
+        {
+          "lang": "Rust",
+          "mean_ms": 4.5,
+          "std_ms": 0.5,
+          "min_ms": 3.9,
+          "max_ms": 9.2,
+          "relative": 1.0
+        },
+        {
+          "lang": "Python",
+          "mean_ms": 293.2,
+          "std_ms": 11.6,
+          "min_ms": 277.1,
+          "max_ms": 313.3,
+          "relative": 65.22
+        }
+      ],
+      "cachegrind": [
+        {
+          "lang": "C++",
+          "instructions_m": 79.3,
+          "data_refs_m": 21.8,
+          "d1_misses": 202511,
+          "ll_misses": 199024,
+          "d1_miss_rate": 0.9,
+          "ll_miss_rate": 0.2
+        },
+        {
+          "lang": "Rust",
+          "instructions_m": 32.3,
+          "data_refs_m": 12.4,
+          "d1_misses": 377422,
+          "ll_misses": 192162,
+          "d1_miss_rate": 3.1,
+          "ll_miss_rate": 0.4
+        },
+        {
+          "lang": "Python",
+          "instructions_m": 9114.8,
+          "data_refs_m": 3972.4,
+          "d1_misses": 1205952,
+          "ll_misses": 260128,
+          "d1_miss_rate": 0.0,
+          "ll_miss_rate": 0.0
+        }
+      ],
+      "python_cpp_ratio": {
+        "instructions": 114.9,
+        "data_refs": 182.2,
+        "d1_misses": 6.0,
+        "ll_misses": 1.3
+      }
+    },
+    "allocation": {
+      "description": "prefix_ + i, 1M iterations",
+      "overhead_split_pct": {
+        "allocator": 55,
+        "pyobject_creation": 35,
+        "refcount": 10
+      },
+      "timing": [
+        {
+          "lang": "C++",
+          "mean_ms": 11.8,
+          "std_ms": 0.9,
+          "min_ms": 10.6,
+          "max_ms": 14.9,
+          "relative": 1.0
+        },
+        {
+          "lang": "Rust",
+          "mean_ms": 23.7,
+          "std_ms": 1.4,
+          "min_ms": 21.3,
+          "max_ms": 28.5,
+          "relative": 2.0
+        },
+        {
+          "lang": "Python",
+          "mean_ms": 79.0,
+          "std_ms": 2.4,
+          "min_ms": 74.1,
+          "max_ms": 83.9,
+          "relative": 6.69
+        }
+      ],
+      "cachegrind": [
+        {
+          "lang": "C++",
+          "instructions_m": 303.9,
+          "data_refs_m": 99.4,
+          "d1_misses": 14765,
+          "ll_misses": 11453,
+          "d1_miss_rate": 0.0,
+          "ll_miss_rate": 0.0
+        },
+        {
+          "lang": "Rust",
+          "instructions_m": 535.6,
+          "data_refs_m": 241.1,
+          "d1_misses": 3395,
+          "ll_misses": 4622,
+          "d1_miss_rate": 0.0,
+          "ll_miss_rate": 0.0
+        },
+        {
+          "lang": "Python",
+          "instructions_m": 2249.6,
+          "data_refs_m": 881.1,
+          "d1_misses": 829059,
+          "ll_misses": 72447,
+          "d1_miss_rate": 0.1,
+          "ll_miss_rate": 0.0
+        }
+      ],
+      "python_cpp_ratio": {
+        "instructions": 7.4,
+        "data_refs": 8.9,
+        "d1_misses": 56.2,
+        "ll_misses": 6.3
+      }
+    }
+  },
+  "python_optimized": {
+    "description": "Same 12 MB string loop, CPython variants + Cython + PyPy",
+    "other_workload": [
+      {
+        "id": "07",
+        "name": "NumPy (vector add)",
+        "time_ms": 66.9,
+        "speedup": 4.42,
+        "instructions_m": 459.1,
+        "d1_misses": 8337969,
+        "note": "different benchmark"
+      }
+    ],
+    "string_comparable": [
+      {
+        "id": "01",
+        "name": "Baseline",
+        "time_ms": 295.9,
+        "speedup": 1.0,
+        "instructions_m": 8943.6,
+        "d1_misses": 1199613,
+        "group": "cpython",
+        "cycles_m": 1489.6,
+        "ipc": 5.86
+      },
+      {
+        "id": "02",
+        "name": "Inline",
+        "time_ms": 106.76,
+        "speedup": 2.77,
+        "instructions_m": 2913.5,
+        "d1_misses": 1198692,
+        "group": "cpython",
+        "cycles_m": 548.0,
+        "ipc": 5.31
+      },
+      {
+        "id": "03",
+        "name": "LocalCache",
+        "time_ms": 108.84,
+        "speedup": 2.72,
+        "instructions_m": 2913.8,
+        "d1_misses": 1200167,
+        "group": "cpython",
+        "cycles_m": 540.1,
+        "ipc": 5.39
+      },
+      {
+        "id": "04",
+        "name": "LoopUnroll",
+        "time_ms": 34.56,
+        "speedup": 8.56,
+        "instructions_m": 897.8,
+        "d1_misses": 1200882,
+        "group": "cpython",
+        "cycles_m": 178.1,
+        "ipc": 5.03
+      },
+      {
+        "id": "06",
+        "name": "Cython Native",
+        "time_ms": 14.17,
+        "speedup": 20.88,
+        "instructions_m": 104.0,
+        "d1_misses": 1205540,
+        "group": "native",
+        "cycles_m": 51.3,
+        "ipc": 1.99
+      },
+      {
+        "id": "08",
+        "name": "RefcountAware",
+        "time_ms": 98.78,
+        "speedup": 3.0,
+        "instructions_m": 2913.8,
+        "d1_misses": 1199548,
+        "group": "cpython",
+        "cycles_m": 481.4,
+        "ipc": 6.05
+      },
+      {
+        "id": "pypy",
+        "name": "PyPy3 JIT",
+        "time_ms": 29.73,
+        "speedup": 9.95,
+        "instructions_m": 230.0,
+        "d1_misses": 2384698,
+        "group": "jit",
+        "cycles_m": 95.3,
+        "ipc": 2.46
+      }
+    ],
+    "cython_instruction_reduction": 86.0
+  },
+  "gap_summary": {
+    "wall_clock_ref_pass": 65.2,
+    "wall_clock_alloc": 6.7,
+    "instructions_ref_pass": 114.9,
+    "instructions_alloc": 7.4
+  }
+}
