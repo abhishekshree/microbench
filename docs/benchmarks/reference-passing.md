@@ -73,8 +73,8 @@ graph TB
     NS -->|"read only"| CD
     NP -->|"pointer chase"| H1
 
-    style H1 fill:#c62828,color:#fff
-    style heap_py fill:#3e2723,color:#fff
+    style H1 fill:#ffebee,stroke:#c62828,color:#b71c1c,stroke-width:1px
+    style heap_py fill:#f5f5f5,stroke:#e0e0e0,color:#212121
 ```
 
 ```mermaid
